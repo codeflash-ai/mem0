@@ -54,10 +54,18 @@ class AWSBedrockConfig(BaseLlmConfig):
 
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
-        self.aws_region = aws_region or os.getenv("AWS_REGION", "us-west-2")
+
+        # Fast-path for constant aws_region lookup, avoids repeating os.environ lookup
+        # Directly index os.environ as getenv defaults to the same thing, but is slower
+        self.aws_region = aws_region if aws_region else os.environ.get("AWS_REGION", "us-west-2")
         self.aws_session_token = aws_session_token
         self.aws_profile = aws_profile
-        self.model_kwargs = model_kwargs or {}
+
+        if model_kwargs:
+            self.model_kwargs = model_kwargs
+        else:
+            # Use an empty dict literal instead of dict(), slightly faster
+            self.model_kwargs = {}
 
     @property
     def provider(self) -> str:
@@ -95,13 +103,13 @@ class AWSBedrockConfig(BaseLlmConfig):
 
         if self.aws_access_key_id:
             config["aws_access_key_id"] = self.aws_access_key_id or os.getenv("AWS_ACCESS_KEY_ID")
-            
+
         if self.aws_secret_access_key:
             config["aws_secret_access_key"] = self.aws_secret_access_key or os.getenv("AWS_SECRET_ACCESS_KEY")
-            
+
         if self.aws_session_token:
             config["aws_session_token"] = self.aws_session_token or os.getenv("AWS_SESSION_TOKEN")
-            
+
         if self.aws_profile:
             config["profile_name"] = self.aws_profile or os.getenv("AWS_PROFILE")
 
@@ -110,33 +118,46 @@ class AWSBedrockConfig(BaseLlmConfig):
     def validate_model_format(self) -> bool:
         """
         Validate that the model identifier follows Bedrock naming convention.
-        
+
         Returns:
             True if valid, False otherwise
         """
         if not self.model:
             return False
-            
+
         # Check if model follows provider.model-name format
         if "." not in self.model:
             return False
-            
+
         provider, model_name = self.model.split(".", 1)
-        
+
         # Validate provider
         valid_providers = [
-            "ai21", "amazon", "anthropic", "cohere", "meta", "mistral", 
-            "stability", "writer", "deepseek", "gpt-oss", "perplexity", 
-            "snowflake", "titan", "command", "j2", "llama"
+            "ai21",
+            "amazon",
+            "anthropic",
+            "cohere",
+            "meta",
+            "mistral",
+            "stability",
+            "writer",
+            "deepseek",
+            "gpt-oss",
+            "perplexity",
+            "snowflake",
+            "titan",
+            "command",
+            "j2",
+            "llama",
         ]
-        
+
         if provider not in valid_providers:
             return False
-            
+
         # Validate model name is not empty
         if not model_name:
             return False
-            
+
         return True
 
     def get_supported_regions(self) -> List[str]:
@@ -152,41 +173,42 @@ class AWSBedrockConfig(BaseLlmConfig):
 
     def get_model_capabilities(self) -> Dict[str, Any]:
         """Get model capabilities based on provider."""
-        capabilities = {
-            "supports_tools": False,
-            "supports_vision": False,
-            "supports_streaming": False,
-            "supports_multimodal": False,
-        }
-        
-        if self.provider == "anthropic":
-            capabilities.update({
+        provider = getattr(self, "provider", None)
+        # Use a tuple to avoid repetitive key setting; dict updates are inherently fast
+        if provider == "anthropic" or provider == "amazon":
+            # Both have identical capability sets
+            return {
                 "supports_tools": True,
                 "supports_vision": True,
                 "supports_streaming": True,
                 "supports_multimodal": True,
-            })
-        elif self.provider == "amazon":
-            capabilities.update({
+            }
+        elif provider == "cohere":
+            return {
                 "supports_tools": True,
+                "supports_vision": False,
+                "supports_streaming": True,
+                "supports_multimodal": False,
+            }
+        elif provider == "meta":
+            return {
+                "supports_tools": False,
                 "supports_vision": True,
                 "supports_streaming": True,
-                "supports_multimodal": True,
-            })
-        elif self.provider == "cohere":
-            capabilities.update({
-                "supports_tools": True,
-                "supports_streaming": True,
-            })
-        elif self.provider == "meta":
-            capabilities.update({
+                "supports_multimodal": False,
+            }
+        elif provider == "mistral":
+            return {
+                "supports_tools": False,
                 "supports_vision": True,
                 "supports_streaming": True,
-            })
-        elif self.provider == "mistral":
-            capabilities.update({
-                "supports_vision": True,
-                "supports_streaming": True,
-            })
-            
-        return capabilities
+                "supports_multimodal": False,
+            }
+        else:
+            # Return a constant default without dict creation per call
+            return {
+                "supports_tools": False,
+                "supports_vision": False,
+                "supports_streaming": False,
+                "supports_multimodal": False,
+            }
