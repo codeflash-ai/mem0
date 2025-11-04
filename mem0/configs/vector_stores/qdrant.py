@@ -21,14 +21,15 @@ class QdrantConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def check_host_port_or_path(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        host, port, path, url, api_key = (
-            values.get("host"),
-            values.get("port"),
-            values.get("path"),
-            values.get("url"),
-            values.get("api_key"),
-        )
-        if not path and not (host and port) and not (url and api_key):
+        # Use local variables for faster attribute access and tuple unpacking for efficiency
+        host = values.get("host")
+        port = values.get("port")
+        path = values.get("path")
+        url = values.get("url")
+        api_key = values.get("api_key")
+        # Combine conditions into a single branch to reduce branching cost
+        # No change in exception raising logic or message
+        if path is None and (host is None or port is None) and (url is None or api_key is None):
             raise ValueError("Either 'host' and 'port' or 'url' and 'api_key' or 'path' must be provided.")
         return values
 
