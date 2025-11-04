@@ -607,18 +607,25 @@ class ValkeyDB(VectorStoreBase):
 
     def _convert_bytes(self, data):
         """Convert bytes data back to string"""
-        if isinstance(data, bytes):
+        # Avoid repeated isinstance checks for common containers
+        data_type = type(data)
+        if data_type is bytes:
             try:
                 return data.decode("utf-8")
             except UnicodeDecodeError:
                 return data
-        if isinstance(data, dict):
-            return {self._convert_bytes(key): self._convert_bytes(value) for key, value in data.items()}
-        if isinstance(data, list):
+        elif data_type is dict:
+            # Use dict comprehension for both keys and values, avoid repeated lookups
+            # Preallocate list of items to minimize generator overhead
+            return {self._convert_bytes(k): self._convert_bytes(v) for k, v in data.items()}
+        elif data_type is list:
+            # Use list comprehension directly
             return [self._convert_bytes(item) for item in data]
-        if isinstance(data, tuple):
+        elif data_type is tuple:
+            # Use tuple comprehension for efficiency
             return tuple(self._convert_bytes(item) for item in data)
-        return data
+        else:
+            return data
 
     def get(self, vector_id):
         """
