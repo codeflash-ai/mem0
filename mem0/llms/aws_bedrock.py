@@ -24,8 +24,13 @@ PROVIDERS = [
 
 def extract_provider(model: str) -> str:
     """Extract provider from model identifier."""
-    for provider in PROVIDERS:
-        if re.search(rf"\b{re.escape(provider)}\b", model):
+    if not hasattr(extract_provider, '_patterns'):
+        extract_provider._patterns = [
+            (provider, re.compile(rf"\b{re.escape(provider)}\b"))
+            for provider in PROVIDERS
+        ]
+    for provider, pattern in extract_provider._patterns:
+        if pattern.search(model):
             return provider
     raise ValueError(f"Unknown provider in model: {model}")
 
