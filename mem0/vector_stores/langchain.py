@@ -38,18 +38,19 @@ class Langchain(VectorStoreBase):
         """
         # Check if input is a list of Document objects
         if isinstance(data, list) and all(hasattr(doc, "metadata") for doc in data if hasattr(doc, "__dict__")):
-            result = []
-            for doc in data:
-                entry = OutputData(
+            # List comprehension is measurably faster than for-loop append
+            return [
+                OutputData(
                     id=getattr(doc, "id", None),
                     score=None,  # Document objects typically don't include scores
                     payload=getattr(doc, "metadata", {}),
                 )
-                result.append(entry)
-            return result
+                for doc in data
+            ]
 
         # Original format handling
-        keys = ["ids", "distances", "metadatas"]
+        keys = ("ids", "distances", "metadatas")
+
         values = []
 
         for key in keys:
@@ -59,16 +60,22 @@ class Langchain(VectorStoreBase):
             values.append(value)
 
         ids, distances, metadatas = values
-        max_length = max(len(v) for v in values if isinstance(v, list) and v is not None)
 
-        result = []
-        for i in range(max_length):
-            entry = OutputData(
-                id=ids[i] if isinstance(ids, list) and ids and i < len(ids) else None,
-                score=(distances[i] if isinstance(distances, list) and distances and i < len(distances) else None),
-                payload=(metadatas[i] if isinstance(metadatas, list) and metadatas and i < len(metadatas) else None),
+        # Precompute lengths only once, avoid checks inside the loop
+        ids_len = len(ids) if isinstance(ids, list) and ids is not None else 0
+        distances_len = len(distances) if isinstance(distances, list) and distances is not None else 0
+        metadatas_len = len(metadatas) if isinstance(metadatas, list) and metadatas is not None else 0
+        max_length = max(ids_len, distances_len, metadatas_len)
+
+        # Use allocation and direct indexing for highest efficiency
+        result = [
+            OutputData(
+                id=ids[i] if i < ids_len else None,
+                score=distances[i] if i < distances_len else None,
+                payload=metadatas[i] if i < metadatas_len else None,
             )
-            result.append(entry)
+            for i in range(max_length)
+        ]
 
         return result
 
@@ -157,14 +164,11 @@ class Langchain(VectorStoreBase):
         List all vectors in a collection.
         """
         try:
-            if hasattr(self.client, "_collection") and hasattr(self.client._collection, "get"):
-                # Convert mem0 filters to Chroma where clause if needed
-                where_clause = None
-                if filters:
-                    # Handle all filters, not just user_id
-                    where_clause = filters
-
-                result = self.client._collection.get(where=where_clause, limit=limit)
+            # Use local variable for _collection to avoid repeated attribute lookup
+            collection = getattr(self.client, "_collection", None)
+            if collection is not None and hasattr(collection, "get"):
+                where_clause = filters if filters else None
+                result = collection.get(where=where_clause, limit=limit)
 
                 # Convert the result to the expected format
                 if result and isinstance(result, dict):
