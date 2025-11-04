@@ -75,17 +75,14 @@ class AWSBedrockConfig(BaseLlmConfig):
 
     def get_model_config(self) -> Dict[str, Any]:
         """Get model-specific configuration parameters."""
-        base_config = {
+        # Merge base config and model_kwargs in one step to avoid .update overhead
+        return {
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "top_p": self.top_p,
             "top_k": self.top_k,
+            **self.model_kwargs
         }
-
-        # Add custom model kwargs
-        base_config.update(self.model_kwargs)
-
-        return base_config
 
     def get_aws_config(self) -> Dict[str, Any]:
         """Get AWS configuration parameters."""
