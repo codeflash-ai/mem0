@@ -128,26 +128,26 @@ def _build_filters_and_metadata(
               scoped to the provided session(s) and potentially a resolved actor.
     """
 
-    base_metadata_template = deepcopy(input_metadata) if input_metadata else {}
-    effective_query_filters = deepcopy(input_filters) if input_filters else {}
+    base_metadata_template = input_metadata.copy() if input_metadata else {}
+    effective_query_filters = input_filters.copy() if input_filters else {}
 
     # ---------- add all provided session ids ----------
-    session_ids_provided = []
+    session_ids_provided = 0
 
     if user_id:
         base_metadata_template["user_id"] = user_id
         effective_query_filters["user_id"] = user_id
-        session_ids_provided.append("user_id")
+        session_ids_provided += 1
 
     if agent_id:
         base_metadata_template["agent_id"] = agent_id
         effective_query_filters["agent_id"] = agent_id
-        session_ids_provided.append("agent_id")
+        session_ids_provided += 1
 
     if run_id:
         base_metadata_template["run_id"] = run_id
         effective_query_filters["run_id"] = run_id
-        session_ids_provided.append("run_id")
+        session_ids_provided += 1
 
     if not session_ids_provided:
         raise Mem0ValidationError(
