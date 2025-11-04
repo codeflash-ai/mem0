@@ -1274,7 +1274,7 @@ class AsyncMemory(MemoryBase):
 
         telemetry_config = _safe_deepcopy_config(self.config.vector_store.config)
         telemetry_config.collection_name = "mem0migrations"
-        if self.config.vector_store.provider in ["faiss", "qdrant"]:
+        if self.config.vector_store.provider in ("faiss", "qdrant"):
             provider_path = f"migrations_{self.config.vector_store.provider}"
             telemetry_config.path = os.path.join(mem0_dir, provider_path)
             os.makedirs(telemetry_config.path, exist_ok=True)
@@ -1319,14 +1319,15 @@ class AsyncMemory(MemoryBase):
         Returns:
             bool: True if should use agent memory extraction, False for user memory extraction
         """
-        # Check if agent_id is present in metadata
-        has_agent_id = metadata.get("agent_id") is not None
-        
-        # Check if there are assistant role messages
-        has_assistant_messages = any(msg.get("role") == "assistant" for msg in messages)
-        
-        # Use agent memory extraction if agent_id is present and there are assistant messages
-        return has_agent_id and has_assistant_messages
+        # Check if agent_id is present in metadata and there are assistant role messages
+        agent_id = metadata.get("agent_id")
+        if agent_id is None:
+            return False
+        # Fast loop: exit on first match, avoids building lists or unnecessary generator objects
+        for msg in messages:
+            if msg.get("role") == "assistant":
+                return True
+        return False
 
     async def add(
         self,
