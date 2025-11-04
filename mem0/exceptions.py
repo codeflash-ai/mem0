@@ -30,6 +30,22 @@ Example:
 
 from typing import Any, Dict, Optional
 
+_SUGGESTIONS = {
+    400: "Please check your request parameters and try again",
+    401: "Please check your API key and authentication credentials",
+    403: "You don't have permission to perform this operation",
+    404: "The requested resource was not found",
+    408: "Request timed out. Please try again",
+    409: "Resource conflict. Please check your request",
+    413: "Request too large. Please reduce the size of your request",
+    422: "Invalid request data. Please check your input",
+    429: "Rate limit exceeded. Please wait before making more requests",
+    500: "Internal server error. Please try again later",
+    502: "Service temporarily unavailable. Please try again later",
+    503: "Service unavailable. Please try again later",
+    504: "Gateway timeout. Please try again later",
+}
+
 
 class MemoryError(Exception):
     """Base exception for all memory-related errors.
@@ -475,24 +491,7 @@ def create_exception_from_response(
     if not error_code:
         error_code = f"HTTP_{status_code}"
     
-    # Create appropriate suggestion based on status code
-    suggestions = {
-        400: "Please check your request parameters and try again",
-        401: "Please check your API key and authentication credentials",
-        403: "You don't have permission to perform this operation",
-        404: "The requested resource was not found",
-        408: "Request timed out. Please try again",
-        409: "Resource conflict. Please check your request",
-        413: "Request too large. Please reduce the size of your request",
-        422: "Invalid request data. Please check your input",
-        429: "Rate limit exceeded. Please wait before making more requests",
-        500: "Internal server error. Please try again later",
-        502: "Service temporarily unavailable. Please try again later",
-        503: "Service unavailable. Please try again later",
-        504: "Gateway timeout. Please try again later",
-    }
-    
-    suggestion = suggestions.get(status_code, "Please try again later")
+    suggestion = _SUGGESTIONS.get(status_code, "Please try again later")
     
     return exception_class(
         message=response_text or f"HTTP {status_code} error",
