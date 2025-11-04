@@ -527,7 +527,9 @@ class ValkeyDB(VectorStoreBase):
             str: The formatted timestamp.
         """
         # Use UTC as default timezone if not specified
-        tz = pytz.timezone(timezone or "UTC")
+        if timezone is None or timezone == "UTC":
+            return datetime.utcfromtimestamp(timestamp).replace(tzinfo=pytz.UTC).isoformat(timespec="microseconds")
+        tz = pytz.timezone(timezone)
         return datetime.fromtimestamp(timestamp, tz=tz).isoformat(timespec="microseconds")
 
     def _process_document_fields(self, result, vector_id):
