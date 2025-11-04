@@ -41,14 +41,18 @@ class VectorStoreConfig(BaseModel):
         provider = self.provider
         config = self.config
 
-        if provider not in self._provider_configs:
+        provider_configs = self._provider_configs
+        if provider not in provider_configs:
             raise ValueError(f"Unsupported vector store provider: {provider}")
 
-        module = __import__(
-            f"mem0.configs.vector_stores.{provider}",
-            fromlist=[self._provider_configs[provider]],
-        )
-        config_class = getattr(module, self._provider_configs[provider])
+        import sys
+
+        module_name = f"mem0.configs.vector_stores.{provider}"
+        module = sys.modules.get(module_name)
+        if module is None:
+            module = __import__(module_name, fromlist=[provider_configs[provider]])
+
+        config_class = getattr(module, provider_configs[provider])
 
         if config is None:
             config = {}
@@ -60,6 +64,7 @@ class VectorStoreConfig(BaseModel):
 
         # also check if path in allowed kays for pydantic model, and whether config extra fields are allowed
         if "path" not in config and "path" in config_class.__annotations__:
+            config = dict(config)
             config["path"] = f"/tmp/{provider}"
 
         self.config = config_class(**config)
