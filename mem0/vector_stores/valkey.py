@@ -331,14 +331,13 @@ class ValkeyDB(VectorStoreBase):
                 or "*=>[KNN...]" if no valid filters.
         """
         # No filters, just use the KNN search
-        if not filters or not any(value is not None for key, value in filters.items()):
+        if not filters:
             return f"*=>{knn_part}"
 
         # Build filter expression
         filter_parts = []
         for key, value in filters.items():
             if value is not None:
-                # Use the correct filter syntax for Valkey
                 filter_parts.append(f"@{key}:{{{value}}}")
 
         # No valid filter parts
