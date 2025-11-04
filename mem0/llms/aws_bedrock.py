@@ -73,6 +73,17 @@ class AWSBedrockLLM(LLMBase):
         # Initialize provider-specific settings
         self._initialize_provider_settings()
 
+        # Cache model capabilities for performance
+        self._cached_model_capabilities = {
+            "model_id": self.config.model,
+            "provider": self.provider,
+            "model_name": self.config.model_name,
+            "supports_tools": self.supports_tools,
+            "supports_vision": self.supports_vision,
+            "supports_streaming": self.supports_streaming,
+            "max_tokens": self.model_config.get("max_tokens", 2000),
+        }
+
     def _initialize_aws_client(self):
         """Initialize AWS Bedrock client with proper credentials."""
         try:
@@ -629,15 +640,7 @@ class AWSBedrockLLM(LLMBase):
 
     def get_model_capabilities(self) -> Dict[str, Any]:
         """Get capabilities of the current model."""
-        return {
-            "model_id": self.config.model,
-            "provider": self.provider,
-            "model_name": self.config.model_name,
-            "supports_tools": self.supports_tools,
-            "supports_vision": self.supports_vision,
-            "supports_streaming": self.supports_streaming,
-            "max_tokens": self.model_config.get("max_tokens", 2000),
-        }
+        return self._cached_model_capabilities
 
     def validate_model_access(self) -> bool:
         """Validate if the model is accessible."""
