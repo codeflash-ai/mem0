@@ -751,19 +751,18 @@ class ValkeyDB(VectorStoreBase):
             str: The query string. Returns "*" if no valid filters provided.
         """
         # Default query
-        q = "*"
+        if not filters:
+            return "*"
 
-        # Add filters if provided
-        if filters and any(value is not None for key, value in filters.items()):
-            filter_conditions = []
-            for key, value in filters.items():
-                if value is not None:
-                    filter_conditions.append(f"@{key}:{{{value}}}")
+        filter_conditions = []
+        for key, value in filters.items():
+            if value is not None:
+                filter_conditions.append(f"@{key}:{{{value}}}")
 
-            if filter_conditions:
-                q = " ".join(filter_conditions)
-
-        return q
+        if filter_conditions:
+            return " ".join(filter_conditions)
+        else:
+            return "*"
 
     def list(self, filters: dict = None, limit: int = None) -> list:
         """
