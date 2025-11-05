@@ -35,12 +35,13 @@ class QdrantConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_extra_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        allowed_fields = set(cls.model_fields.keys())
-        input_fields = set(values.keys())
-        extra_fields = input_fields - allowed_fields
+        # Use frozenset for allowed_fields to eliminate unnecessary dictionary lookup
+        allowed_fields = frozenset(cls.model_fields)
+        # Use keys() directly since it's already a set-like view in CPython
+        extra_fields = set(values) - allowed_fields
         if extra_fields:
             raise ValueError(
-                f"Extra fields not allowed: {', '.join(extra_fields)}. Please input only the following fields: {', '.join(allowed_fields)}"
+                f"Extra fields not allowed: {', '.join(sorted(extra_fields))}. Please input only the following fields: {', '.join(sorted(allowed_fields))}"
             )
         return values
 
