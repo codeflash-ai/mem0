@@ -10,11 +10,11 @@ from mem0.configs.prompts import (
 
 def get_fact_retrieval_messages(message, is_agent_memory=False):
     """Get fact retrieval messages based on the memory type.
-    
+
     Args:
         message: The message content to extract facts from
         is_agent_memory: If True, use agent memory extraction prompt, else use user memory extraction prompt
-        
+
     Returns:
         tuple: (system_prompt, user_prompt)
     """
@@ -45,11 +45,9 @@ def format_entities(entities):
     if not entities:
         return ""
 
-    formatted_lines = []
-    for entity in entities:
-        simplified = f"{entity['source']} -- {entity['relationship']} -- {entity['destination']}"
-        formatted_lines.append(simplified)
-
+    formatted_lines = [
+        f"{entity['source']} -- {entity['relationship']} -- {entity['destination']}" for entity in entities
+    ]
     return "\n".join(formatted_lines)
 
 
@@ -64,9 +62,8 @@ def remove_code_blocks(content: str) -> str:
     """
     pattern = r"^```[a-zA-Z0-9]*\n([\s\S]*?)\n```$"
     match = re.match(pattern, content.strip())
-    match_res=match.group(1).strip() if match else content.strip()
+    match_res = match.group(1).strip() if match else content.strip()
     return re.sub(r"<think>.*?</think>", "", match_res, flags=re.DOTALL).strip()
-
 
 
 def extract_json(text):
@@ -205,4 +202,3 @@ def sanitize_relationship_for_cypher(relationship) -> str:
         sanitized = sanitized.replace(old, new)
 
     return re.sub(r"_+", "_", sanitized).strip("_")
-
