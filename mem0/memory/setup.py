@@ -20,15 +20,13 @@ def setup_config():
 
 def get_user_id():
     config_path = os.path.join(mem0_dir, "config.json")
-    if not os.path.exists(config_path):
-        return "anonymous_user"
 
     try:
         with open(config_path, "r") as config_file:
-            config = json.load(config_file)
-            user_id = config.get("user_id")
-            return user_id
-    except Exception:
+            # Load and fetch user_id in a single step to avoid unnecessary variable
+            return json.load(config_file).get("user_id")
+    except (FileNotFoundError, json.JSONDecodeError, PermissionError):
+        # Directly catch file and JSON errors to avoid handling unrelated exceptions
         return "anonymous_user"
 
 
