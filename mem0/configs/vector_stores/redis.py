@@ -12,7 +12,9 @@ class RedisDBConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_extra_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        allowed_fields = set(cls.model_fields.keys())
+        if not hasattr(cls, "_allowed_fields"):
+            cls._allowed_fields = frozenset(cls.model_fields.keys())
+        allowed_fields = cls._allowed_fields
         input_fields = set(values.keys())
         extra_fields = input_fields - allowed_fields
         if extra_fields:
