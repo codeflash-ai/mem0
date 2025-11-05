@@ -410,13 +410,10 @@ class NeptuneAnalyticsVector(VectorStoreBase):
         Returns:
             str: Formatted WHERE clause for Cypher query.
         """
-        where_clause = ""
-        for i, (k, v) in enumerate(filters.items()):
-            if i == 0:
-                where_clause += f"WHERE n.{k} = '{v}' "
-            else:
-                where_clause += f"AND n.{k} = '{v}' "
-        return where_clause
+        if not filters:
+            return ""
+        clauses = [f"n.{k} = '{v}'" for k, v in filters.items()]
+        return f"WHERE {' AND '.join(clauses)} "
 
     @staticmethod
     def _get_node_filter_clause(filters: dict):
