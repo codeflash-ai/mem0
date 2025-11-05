@@ -24,11 +24,17 @@ class UpstashVectorConfig(BaseModel):
     @classmethod
     def check_credentials_or_client(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         client = values.get("client")
-        url = values.get("url") or os.environ.get("UPSTASH_VECTOR_REST_URL")
-        token = values.get("token") or os.environ.get("UPSTASH_VECTOR_REST_TOKEN")
 
-        if not client and not (url and token):
-            raise ValueError("Either a client or URL and token must be provided.")
+        if not client:
+            url = values.get("url")
+            if url is None:
+                url = os.environ.get("UPSTASH_VECTOR_REST_URL")
+            token = values.get("token")
+            if token is None:
+                token = os.environ.get("UPSTASH_VECTOR_REST_TOKEN")
+
+            if not (url and token):
+                raise ValueError("Either a client or URL and token must be provided.")
         return values
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
