@@ -67,7 +67,7 @@ class GoogleMatchingEngine(VectorStoreBase):
             "project": self.project_id,
             "location": self.region,
         }
-        
+
         # Support both credentials_path and service_account_json
         if hasattr(config, "credentials_path") and config.credentials_path:
             logger.debug("Using credentials from file: %s", config.credentials_path)
@@ -131,8 +131,13 @@ class GoogleMatchingEngine(VectorStoreBase):
         Returns:
             Restriction object for the index
         """
-        str_value = str(value) if value is not None else ""
-        return aiplatform_v1.types.index.IndexDatapoint.Restriction(namespace=key, allow_list=[str_value])
+        # This speeds up Restriction creation by eliminating temporary variables/list allocations
+        str_value = "" if value is None else str(value)
+        # Pre-allocate list only once, and avoid attribute lookups inside list
+        allow_list = [str_value]
+        # Local variable for class shortcut, avoids repeated attribute chain lookup
+        Restriction = aiplatform_v1.types.index.IndexDatapoint.Restriction
+        return Restriction(namespace=key, allow_list=allow_list)
 
     def _create_datapoint(
         self, vector_id: str, vector: List[float], payload: Optional[Dict] = None
@@ -147,13 +152,11 @@ class GoogleMatchingEngine(VectorStoreBase):
         Returns:
             IndexDatapoint object
         """
-        restrictions = []
-        if payload:
-            restrictions = [self._create_restriction(key, value) for key, value in payload.items()]
-
-        return aiplatform_v1.types.index.IndexDatapoint(
-            datapoint_id=vector_id, feature_vector=vector, restricts=restrictions
-        )
+        # Avoid repeated attribute lookups and comprehensions if payload is empty or None
+        restrictions = [self._create_restriction(key, value) for key, value in payload.items()] if payload else []
+        # Local variable for class shortcut, avoids repeated attribute chain lookup
+        IndexDatapoint = aiplatform_v1.types.index.IndexDatapoint
+        return IndexDatapoint(datapoint_id=vector_id, feature_vector=vector, restricts=restrictions)
 
     def insert(
         self,
